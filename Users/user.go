@@ -2,7 +2,6 @@ package Users
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -70,30 +69,49 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var user Users
 
-	res := db.First(&user, id)
-
-	fmt.Println(user)
-	fmt.Println(id)
-	if res.Error != nil {
+	err := db.First(&user, id)
+	if err.Error != nil {
 		http.Error(w, "Пользователь не найден!", http.StatusNotFound)
 		return
 	}
 
-	if err := db.Delete(&user); err != nil {
-		http.Error(w, "Ошибка при удалении!", http.StatusInternalServerError)
+	err = db.Where("id_user = ?", id).Delete(&user)
+	if err.Error != nil {
+		http.Error(w, "Ошибка при удалении пользователя: ", http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(user)
 
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode("Пользователь удален!")
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	var user Users
 
-	db.First(&user, id)
-	json.NewDecoder(r.Body).Decode(&user)
-	db.Model(&user).Updates(&user)
-	json.NewEncoder(w).Encode(user)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	search := db.First(&user, id)
+	if search.Error != nil {
+		http.Error(w, "Пользователь не найден!", http.StatusNotFound)
+		return
+	}
+
+	res := json.Unmarshal(body, &user)
+	if res != nil {
+		http.Error(w, "Ошибка при декодировании JSON: ", http.StatusBadRequest)
+		return
+	}
+
+	upd := db.Where("id_user = ?", id).Save(&user)
+	if upd.Error != nil {
+		http.Error(w, "Ошибка при обновлении пользователя: ", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode("Пользователь обновлен!")
 }
