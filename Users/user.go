@@ -11,7 +11,8 @@ import (
 )
 
 type Users struct {
-	ID_User  int    `json:"ID_User"`
+	gorm.Model
+	id       uint   `gorm:"primaryKey"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 }
@@ -77,7 +78,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	err = db.Where("id_user = ?", id).Delete(&user)
 	if err.Error != nil {
-		http.Error(w, "Ошибка при удалении пользователя: ", http.StatusInternalServerError)
+		http.Error(w, "Ошибка при удалении пользователя!", http.StatusInternalServerError)
 		return
 	}
 
@@ -103,13 +104,13 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	res := json.Unmarshal(body, &user)
 	if res != nil {
-		http.Error(w, "Ошибка при декодировании JSON: ", http.StatusBadRequest)
+		http.Error(w, "Ошибка при декодировании JSON!", http.StatusBadRequest)
 		return
 	}
 
 	upd := db.Where("id_user = ?", id).Save(&user)
 	if upd.Error != nil {
-		http.Error(w, "Ошибка при обновлении пользователя: ", http.StatusInternalServerError)
+		http.Error(w, "Ошибка при обновлении пользователя!", http.StatusInternalServerError)
 		return
 	}
 
